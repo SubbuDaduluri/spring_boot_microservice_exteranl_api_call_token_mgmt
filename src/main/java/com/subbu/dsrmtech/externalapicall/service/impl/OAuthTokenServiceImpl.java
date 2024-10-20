@@ -2,7 +2,7 @@ package com.subbu.dsrmtech.externalapicall.service.impl;
 
 import com.subbu.dsrmtech.externalapicall.config.OAuth2Properties;
 import com.subbu.dsrmtech.externalapicall.exception.OAuth2TokenException;
-import com.subbu.dsrmtech.externalapicall.model.CacheValue;
+import com.subbu.dsrmtech.externalapicall.model.OAuth2Token;
 import com.subbu.dsrmtech.externalapicall.service.OAuthTokenService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,14 +41,18 @@ public class OAuthTokenServiceImpl implements OAuthTokenService {
 
     private final OAuth2Properties oAuth2Properties;
 
+    private final RedisCacheService redisCacheService;
+
     @Autowired
     public OAuthTokenServiceImpl(RestTemplate restTemplate, TokenCacheService tokenCacheService,
                                  OAuth2AuthorizedClientManager authorizedClientManager,
-                                 OAuth2Properties oAuth2Properties) {
+                                 OAuth2Properties oAuth2Properties,
+                                 RedisCacheService redisCacheService) {
         this.restTemplate = restTemplate;
         this.tokenCacheService = tokenCacheService;
         this.authorizedClientManager = authorizedClientManager;
         this.oAuth2Properties = oAuth2Properties;
+        this.redisCacheService = redisCacheService;
     }
 
     @Override
@@ -59,20 +63,25 @@ public class OAuthTokenServiceImpl implements OAuthTokenService {
             try {
                 // Double-check locking
                 if (isTokenExpired()) {
-                    tokenCacheService.removeToken(oAuth2Properties.getClientId());
+                    redisCacheService.removeToken(oAuth2Properties.getClientId());
                     fetchNewToken();
                 }
             } finally {
                 lock.unlock();
             }
         }
-        CacheValue cacheValue = tokenCacheService.getToken(oAuth2Properties.getClientId());
+        OAuth2Token cacheValue = redisCacheService.getToken(oAuth2Properties.getClientId());
         return Objects.nonNull(cacheValue) ? cacheValue.getToken() : null;
     }
 
 
     private boolean isTokenExpired() {
-        CacheValue cacheValue = tokenCacheService.getToken(oAuth2Properties.getClientId());
+        OAuth2Token cacheValue = null;
+        try{
+            cacheValue = redisCacheService.getToken(oAuth2Properties.getClientId());
+        }catch (Exception ex){
+            log.error("Exception getting Token"+ ex);
+        }
         return cacheValue == null || cacheValue.isExpired();
     }
 
@@ -91,8 +100,8 @@ public class OAuthTokenServiceImpl implements OAuthTokenService {
             long issuedAtSec = authorizedClient.getAccessToken().getIssuedAt().getLong(ChronoField.INSTANT_SECONDS);
             long expiredAtSec = authorizedClient.getAccessToken().getExpiresAt().getLong(ChronoField.INSTANT_SECONDS);
             Instant expiryTime = Instant.now().plusSeconds((expiredAtSec - issuedAtSec) * 1000).minusSeconds(6000);
-            CacheValue cacheValue = new CacheValue(accessToken, expiryTime);
-            tokenCacheService.storeToken(oAuth2Properties.getClientId(), cacheValue);
+            OAuth2Token cacheValue = new OAuth2Token(accessToken, expiryTime);
+            redisCacheService.storeToken(oAuth2Properties.getClientId(), cacheValue);
         } catch (OAuth2AuthorizationException ex) {
             // Handle different types of OAuth2 errors here (e.g., invalid credentials, etc.)
             throw new OAuth2TokenException("OAuth2 Token API authorization failed: " + ex.getMessage(), ex);
@@ -122,7 +131,7 @@ public class OAuthTokenServiceImpl implements OAuthTokenService {
             int expiresIn = (int) response.get("expires_in");
             // Subtract 60 seconds for buffer
             Instant expiryTime = Instant.now().plusSeconds(expiresIn * 1000).minusSeconds(6000);
-            CacheValue cacheValue = new CacheValue(accessToken, expiryTime);
+            OAuth2Token cacheValue = new OAuth2Token(accessToken, expiryTime);
             tokenCacheService.storeToken(oAuth2Properties.getClientId(), cacheValue);
         } catch (OAuth2TokenException ex) {
             throw new OAuth2TokenException("Failed to retrieve OAuth2 token: " + ex.getMessage(), ex);

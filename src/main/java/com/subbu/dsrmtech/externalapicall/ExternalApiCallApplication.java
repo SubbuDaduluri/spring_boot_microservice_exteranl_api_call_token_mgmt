@@ -10,4 +10,5 @@ public class ExternalApiCallApplication {
 		SpringApplication.run(ExternalApiCallApplication.class, args);
 	}
 
+
 }

@@ -44,9 +44,5 @@ public class ExternalApiServiceImpl implements ExternalApiService {
             HttpStatus.OK);
     }
 
-
-    public String fallbackRandomActivity(Throwable throwable) {
-
-        return "Watch a video from TechPrimers";
-    }
+    
 }

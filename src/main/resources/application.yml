@@ -1,3 +1,20 @@
+logging:
+    level:
+        org:
+            springframework:
+                security: DEBUG
+    org.springframework.data.redis: DEBUG
+management:
+    endpoint:
+        health:
+            show-details: always
+    endpoints:
+        web:
+            exposure:
+                include: health
+    health:
+        circuitbreakers:
+            enabled: true
 oauth2:
     clientId: dsrmifotech_client_id_dev
     clientSecret: e6ymuymv4BAU3IadQ6UdMMLwtygdjBW4
@@ -5,38 +22,28 @@ oauth2:
 server:
     port: 8085
 spring:
-  application:
-    name: external-api-call
-  cloud:
-    circuitbreaker:
-      resilience4j:
-        configs:
-          default:
-            timeout:
-              enabled: true
-              duration: 1000 # milliseconds
-            sliding-window:
-              size: 10
-              minimum-number-of-calls: 5
-              failure-rate-threshold: 50 # in percentage
-            retry:
-              enabled: true
-              max-attempts: 3
-              wait-duration: 500 # milliseconds
+    application:
+        name: external-api-call
+    cache: type = redis
+    cloud:
+        circuitbreaker:
+            resilience4j:
+                configs:
+                    default:
+                        retry:
+                            enabled: true
+                            max-attempts: 3
+                            wait-duration: 500
+                        sliding-window:
+                            failure-rate-threshold: 50
+                            minimum-number-of-calls: 5
+                            size: 10
+                        timeout:
+                            duration: 1000
+                            enabled: true
+    redis:
+        host: 127.0.0.1
+      #  password: admin
+        port: 6379
+        database: 0
 
-logging:
-  level:
-    org:
-      springframework:
-        security: DEBUG
-management:
-  endpoint:
-    health:
-      show-details: always
-  endpoints:
-    web:
-      exposure:
-        include: health
-  health:
-    circuitbreakers:
-      enabled: true

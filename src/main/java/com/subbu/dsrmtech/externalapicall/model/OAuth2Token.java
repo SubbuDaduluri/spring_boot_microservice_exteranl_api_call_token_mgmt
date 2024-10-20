@@ -1,12 +1,19 @@
 package com.subbu.dsrmtech.externalapicall.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Data;
+
+import java.io.Serializable;
 import java.time.Instant;
 
-public class CacheValue {
-    private final String token;
-    private final Instant expiry;
 
-    public CacheValue(String token, Instant expiry) {
+public class OAuth2Token implements Serializable {
+    private String token;
+    private Instant expiry;
+
+    public OAuth2Token() {}
+
+    public OAuth2Token(String token, Instant expiry) {
         this.token = token;
         this.expiry = expiry;
     }
@@ -19,6 +26,7 @@ public class CacheValue {
         return expiry;
     }
 
+    @JsonIgnore
     public boolean isExpired() {
         return Instant.now().isAfter(expiry);
     }
