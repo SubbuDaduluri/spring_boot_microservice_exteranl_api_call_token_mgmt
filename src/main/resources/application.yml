@@ -1,20 +1,42 @@
 oauth2:
-    client:
-        id: dsrmifotech_client_id_dev
-        secret: e6ymuymv4BAU3IadQ6UdMMLwtygdjBW4
-    token:
-        url: http://localhost:8081/realms/master/protocol/openid-connect/token
+    clientId: dsrmifotech_client_id_dev
+    clientSecret: e6ymuymv4BAU3IadQ6UdMMLwtygdjBW4
+    tokenUrl: http://localhost:8081/realms/master/protocol/openid-connect/token
 server:
     port: 8085
-
 spring:
   application:
     name: external-api-call
   cloud:
     circuitbreaker:
       resilience4j:
-        instances:
-          externalApiService:
-            slidingWindowSize: 10
-            failureRateThreshold: 50
-            waitDurationInOpenState: 10000
+        configs:
+          default:
+            timeout:
+              enabled: true
+              duration: 1000 # milliseconds
+            sliding-window:
+              size: 10
+              minimum-number-of-calls: 5
+              failure-rate-threshold: 50 # in percentage
+            retry:
+              enabled: true
+              max-attempts: 3
+              wait-duration: 500 # milliseconds
+
+logging:
+  level:
+    org:
+      springframework:
+        security: DEBUG
+management:
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: health
+  health:
+    circuitbreakers:
+      enabled: true

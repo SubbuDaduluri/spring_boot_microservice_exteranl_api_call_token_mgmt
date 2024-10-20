@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -35,9 +36,17 @@ public class ExternalApiServiceImpl implements ExternalApiService {
 
         return response;
     }
+
     // Fallback method in case of failure
-    public String fallbackGetExternalApiData(Throwable throwable) {
+    public ResponseEntity<String> fallbackGetExternalApiData(Throwable throwable) {
         // Log the error or handle it accordingly
-        return "Default data - External API service is currently unavailable.";
+        return new ResponseEntity<String>("Default data - External API service is currently unavailable.",
+            HttpStatus.OK);
+    }
+
+
+    public String fallbackRandomActivity(Throwable throwable) {
+
+        return "Watch a video from TechPrimers";
     }
 }
